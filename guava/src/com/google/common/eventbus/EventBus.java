@@ -104,6 +104,93 @@ public class EventBus {
   private final SubscriberRegistry subscribers = new SubscriberRegistry(this);
   private final Dispatcher dispatcher;
 
+  /**
+   * A builder for creating instances of {@link EventBus}. Not reusable, if attemped to be used more
+   * than once, throws {@link IllegalStateException} Example: <pre> {@code
+   *   EventBus bus = new EventBus.Builder()
+   *                  .identifier("EVENT_BUS")
+   *                  .executor(MoreExecutors.directExecutor())
+   *                  .dispatcher(Dispatcher.immediate())
+   *                  .exceptionHandler(new CustomSubscriberExceptionHandler())
+   *                  .build();}</pre>
+   */
+  public static class Builder {
+
+    private String identifier = "default";
+    private Executor executor = MoreExecutors.directExecutor();
+    private Dispatcher dispatcher = null;
+    private SubscriberExceptionHandler exceptionHandler = LoggingHandler.INSTANCE;
+    private boolean dirty = false;
+
+    /**
+     * Sets a name of the EventBus to be built with. Optional.
+     * @see #EventBus(String)
+     *
+     * @param identifier a name of the {@link EventBus}, default one is "default".
+     * @return this for chained calls.
+     */
+    public Builder identifier(final String identifier) {
+      this.identifier = identifier;
+      return this;
+    }
+
+    /**
+     * Sets an executor for the {@link EventBus} to be built with. Optional.
+     * @see Executor
+     *
+     * @param executor An instance of {@link Executor}, default one is {@link MoreExecutors#directExecutor()}.
+     * @return this for chained calls.
+     */
+    public Builder executor(final Executor executor) {
+      this.executor = executor;
+      return this;
+    }
+
+    /**
+     * Sets a dispatcher for the {@link EventBus} to be built with. Optional.
+     * @see Dispatcher
+     *
+     * @param dispatcher An instance of {@link Dispatcher}, default is {@link Dispatcher#perThreadDispatchQueue()}.
+     * @return this fir chained calls.
+     */
+    public Builder dispatcher(final Dispatcher dispatcher) {
+      this.dispatcher = dispatcher;
+      return this;
+    }
+
+    /**
+     * Sets {@link SubscriberExceptionHandler} for the EventBus to be built with.
+     * @see #EventBus(SubscriberExceptionHandler)
+     * @see SubscriberExceptionHandler
+     *
+     * @param exceptionHandler an handler of exceptions happening in subscribes, default ons is
+     *                         {@link LoggingHandler#INSTANCE}
+     * @return this for chained calls.
+     */
+    public Builder exceptionHandler(final SubscriberExceptionHandler exceptionHandler) {
+      this.exceptionHandler = exceptionHandler;
+      return this;
+    }
+
+    /**
+     * Builds and returns a new {@link EventBus} instance. {@link Builder} is not reusable, so this method
+     * can be called only once. Throws {@link IllegalStateException} if called more than once.
+     *
+     * @return a newly build {@link EventBus}
+     * @throws IllegalStateException if called more than once.
+     */
+    public EventBus build() {
+      if (dirty) {
+        throw new IllegalStateException("Builder can only be used once");
+      }
+
+      dirty = true;
+      return new EventBus(this.identifier, this.executor,
+          this.dispatcher != null ? this.dispatcher : Dispatcher.perThreadDispatchQueue(),
+          this.exceptionHandler);
+    }
+  }
+
   /** Creates a new EventBus named "default". */
   public EventBus() {
     this("default");
